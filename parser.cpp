@@ -3,10 +3,13 @@
 #include <sstream>
 #include <stdexcept>
 
+#define TO_TEMP temp[0] >> temp[1] >> temp[2]
+
 void Scene::loadFromXml(const std::string &filepath)
 {
     tinyxml2::XMLDocument file;
     std::stringstream stream;
+    arr4f temp;
 
     auto res = file.LoadFile(filepath.c_str());
     if (res)
@@ -30,7 +33,10 @@ void Scene::loadFromXml(const std::string &filepath)
     {
         stream << "0 0 0" << std::endl;
     }
-    stream >> background_color.x >> background_color.y >> background_color.z;
+    //
+    stream >> TO_TEMP;
+    background_color = vmake(temp);
+    // stream >> background_color.x >> background_color.y >> background_color.z;
 
     //Get ShadowRayEpsilon
     element = root->FirstChildElement("ShadowRayEpsilon");
@@ -77,10 +83,19 @@ void Scene::loadFromXml(const std::string &filepath)
         child = element->FirstChildElement("ImageName");
         stream << child->GetText() << std::endl;
 
-        stream >> Camera.position.x >> Camera.position.y >> Camera.position.z;
-        stream >> Camera.gaze.x >> Camera.gaze.y >> Camera.gaze.z;
-        stream >> Camera.up.x >> Camera.up.y >> Camera.up.z;
-        stream >> Camera.near_plane.x >> Camera.near_plane.y >> Camera.near_plane.z >> Camera.near_plane.w;
+        //
+        stream >> TO_TEMP;
+        Camera.position = vmake(temp);
+        stream >> TO_TEMP;
+        Camera.gaze = vmake(temp);
+        stream >> TO_TEMP;
+        Camera.up = vmake(temp);
+        stream >> TO_TEMP;
+        Camera.near_plane = vmake(temp);
+        // stream >> Camera.position.x >> Camera.position.y >> Camera.position.z;
+        // stream >> Camera.gaze.x >> Camera.gaze.y >> Camera.gaze.z;
+        // stream >> Camera.up.x >> Camera.up.y >> Camera.up.z;
+        // stream >> Camera.near_plane.x >> Camera.near_plane.y >> Camera.near_plane.z >> Camera.near_plane.w;
         stream >> Camera.near_distance;
         stream >> Camera.image_width >> Camera.image_height;
         stream >> Camera.image_name;
@@ -93,7 +108,10 @@ void Scene::loadFromXml(const std::string &filepath)
     element = root->FirstChildElement("Lights");
     auto child = element->FirstChildElement("AmbientLight");
     stream << child->GetText() << std::endl;
-    stream >> ambient_light.x >> ambient_light.y >> ambient_light.z;
+    //
+    stream >> TO_TEMP;
+    ambient_light = vmake(temp);
+    // stream >> ambient_light.x >> ambient_light.y >> ambient_light.z;
     element = element->FirstChildElement("PointLight");
     PointLight point_light;
     while (element)
@@ -103,8 +121,13 @@ void Scene::loadFromXml(const std::string &filepath)
         child = element->FirstChildElement("Intensity");
         stream << child->GetText() << std::endl;
 
-        stream >> point_light.position.x >> point_light.position.y >> point_light.position.z;
-        stream >> point_light.intensity.x >> point_light.intensity.y >> point_light.intensity.z;
+        //
+        stream >> TO_TEMP;
+        point_light.position = vmake(temp);
+        stream >> TO_TEMP;
+        point_light.intensity = vmake(temp);
+        // stream >> point_light.position.x >> point_light.position.y >> point_light.position.z;
+        // stream >> point_light.intensity.x >> point_light.intensity.y >> point_light.intensity.z;
 
         point_lights.push_back(point_light);
         element = element->NextSiblingElement("PointLight");
@@ -129,10 +152,19 @@ void Scene::loadFromXml(const std::string &filepath)
         child = element->FirstChildElement("PhongExponent");
         stream << child->GetText() << std::endl;
 
-        stream >> material.ambient.x >> material.ambient.y >> material.ambient.z;
-        stream >> material.diffuse.x >> material.diffuse.y >> material.diffuse.z;
-        stream >> material.specular.x >> material.specular.y >> material.specular.z;
-        stream >> material.mirror.x >> material.mirror.y >> material.mirror.z;
+        //
+        stream >> TO_TEMP;
+        material.ambient = vmake(temp);
+        stream >> TO_TEMP;
+        material.diffuse = vmake(temp);
+        stream >> TO_TEMP;
+        material.specular = vmake(temp);
+        stream >> TO_TEMP;
+        material.mirror = vmake(temp);
+        // stream >> material.ambient.x >> material.ambient.y >> material.ambient.z;
+        // stream >> material.diffuse.x >> material.diffuse.y >> material.diffuse.z;
+        // stream >> material.specular.x >> material.specular.y >> material.specular.z;
+        // stream >> material.mirror.x >> material.mirror.y >> material.mirror.z;
         stream >> material.phong_exponent;
 
         materials.push_back(material);
@@ -143,9 +175,10 @@ void Scene::loadFromXml(const std::string &filepath)
     element = root->FirstChildElement("VertexData");
     stream << element->GetText() << std::endl;
     vec4f vertex;
-    while (!(stream >> vertex.x).eof())
+    while (!(stream >> temp[0]).eof())
     {
-        stream >> vertex.y >> vertex.z;
+        stream >> temp[1] >> temp[2];
+        vertex = vmake(temp);
         vertex_data.push_back(vertex);
     }
     stream.clear();

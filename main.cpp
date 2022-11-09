@@ -1,3 +1,4 @@
+#include <float.h>
 #include "ppm.h"
 #include "vec.h"
 #include "parser.h"
@@ -5,7 +6,7 @@
 #include "collision_object.h"
 #include "geometry.h"
 
-std::pair<float, CollisionObject> nearest_object(const Ray& ray, const std::vector<Sphere>& spheres, const std::vector<Mesh>& meshes, const std::vector<Triangle>& tris) {
+std::pair<float, CollisionObject> nearest_object(const Ray& ray, const std::vector<Sphere>& spheres, const std::vector<Mesh>& meshes, const std::vector<Triangle>& tris, const std::vector<vec4f>& vertices) {
 	float t_min = FLT_MAX;
 	CollisionObject obj;
 
@@ -24,7 +25,7 @@ std::pair<float, CollisionObject> nearest_object(const Ray& ray, const std::vect
 	{
 		for (auto& face : mesh.faces)
 		{
-			float t = triangle_get_collision(face, ray);
+			float t = triangle_get_collision(vertices, face, ray);
 			if (t_min > t)
 			{
 				t_min = t;
@@ -36,7 +37,7 @@ std::pair<float, CollisionObject> nearest_object(const Ray& ray, const std::vect
 
 	for (auto& tri : tris)
 	{
-		float t = triangle_get_collision(tri.indices, ray);
+		float t = triangle_get_collision(vertices, tri.indices, ray);
 		if (t_min > t)
 		{
 			t_min = t;
@@ -47,7 +48,7 @@ std::pair<float, CollisionObject> nearest_object(const Ray& ray, const std::vect
 
 	return { t_min, obj };
 }
-bool is_shadowed(const Ray& ray, const std::vector<Sphere>& spheres, const std::vector<Mesh>& meshes, const std::vector<Triangle>& tris)
+bool is_shadowed(const Ray& ray, const std::vector<Sphere>& spheres, const std::vector<Mesh>& meshes, const std::vector<Triangle>& tris, const std::vector<vec4f>& vertices)
 {
 	for (auto& sphere : spheres)
 	{
@@ -60,7 +61,7 @@ bool is_shadowed(const Ray& ray, const std::vector<Sphere>& spheres, const std::
 	{
 		for (auto& face : mesh.faces)
 		{
-			float t = triangle_get_collision(face, ray);
+			float t = triangle_get_collision(vertices, face, ray);
 			if (t < 1.0f)
 				return true;
 		}
@@ -68,7 +69,7 @@ bool is_shadowed(const Ray& ray, const std::vector<Sphere>& spheres, const std::
 
 	for (auto& tri : tris)
 	{
-		float t = triangle_get_collision(tri.indices, ray);
+		float t = triangle_get_collision(vertices, tri.indices, ray);
 		if (t < 1.0f)
 			return true;
 	}
@@ -82,12 +83,12 @@ void trace(Scene& scene, Ray& ray, size_t depth, vec4f& color)
 		return;
 	}
 
-	vec4f color = scene.ambient_light;
+	// vec4f color = scene.ambient_light;
 
 	float t_min = FLT_MAX;
 	CollisionObject obj;
 
-	auto nearest = nearest_object(ray, scene.spheres, scene.meshes, scene.triangles);
+	auto nearest = nearest_object(ray, scene.spheres, scene.meshes, scene.triangles, scene.vertex_data);
 	t_min = nearest.first;
 	obj = nearest.second;
 
@@ -107,14 +108,14 @@ void trace(Scene& scene, Ray& ray, size_t depth, vec4f& color)
 			break;
 		case COLLISION_OBJECT_TRI:
 			material = scene.materials[obj.data.tri.material_id];
-			norm = triangle_get_normal(obj.data.tri.indices);
+			norm = triangle_get_normal(scene.vertex_data, obj.data.tri.indices);
 			break;
 	}
 
 	for (auto& light : scene.point_lights)
 	{
 		Ray shadow_ray = Ray::from_to(hit_point, light.position);
-		if (is_shadowed(shadow_ray, scene.spheres, scene.meshes, scene.triangles))
+		if (is_shadowed(shadow_ray, scene.spheres, scene.meshes, scene.triangles, scene.vertex_data))
 			continue;
 		
 		// Diffuse
