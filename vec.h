@@ -118,7 +118,13 @@ static inline vec4f vmake(arr4fc& arr) {
    return _mm_load_ps(arr.data());
 }
 
-#ifndef __GNUC__
+static inline arr4f amake(vec4fc v) {
+   arr4f a;
+   _mm_store_ps(a.data(), v);
+   return a;
+}
+
+#if !(defined(__GNUC__) || defined(__clang__))
 
 static inline vec4f operator+(vec4fc lhs, vec4fc rhs) {
    return _mm_add_ps(lhs, rhs);
@@ -148,15 +154,10 @@ static inline vec4f operator/(vec4f lhs, cfloat rhs) {
    return _mm_div_ps(lhs, _mm_set1_ps(rhs));
 }
 
-static inline vec4f operator/(cfloat lhs, vec4fc lhs) {
+static inline vec4f operator/(cfloat lhs, vec4fc rhs) {
    return _mm_div_ps(_mm_set1_ps(lhs), rhs);
 }
 
 #endif
-
-std::ostream& operator<<(std::ostream& os, vec4fc& vec) {
-   os << "vec4f{" << extract<0>(vec) << ", " << extract<1>(vec) << ", " << extract<2>(vec) << ", " << extract<3>(vec) << "}";
-   return os;
-}
 
 #endif

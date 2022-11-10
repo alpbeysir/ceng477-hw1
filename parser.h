@@ -69,9 +69,6 @@ struct Scene
     std::vector<PointLight> point_lights;
     std::vector<Material> materials;
     std::vector<vec4f> vertex_data;
-
-    //TODO: precalculate meshes
-    std::vector<Mesh> meshes;
     std::vector<Triangle> triangles;
 
     std::vector<Sphere> spheres;

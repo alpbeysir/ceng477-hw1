@@ -91,6 +91,7 @@ void Scene::loadFromXml(const std::string &filepath)
         stream >> TO_TEMP;
         Camera.up = vmake(temp);
         stream >> TO_TEMP;
+        stream >> temp[3];
         Camera.near_plane = vmake(temp);
         // stream >> Camera.position.x >> Camera.position.y >> Camera.position.z;
         // stream >> Camera.gaze.x >> Camera.gaze.y >> Camera.gaze.z;
@@ -186,12 +187,13 @@ void Scene::loadFromXml(const std::string &filepath)
     //Get Meshes
     element = root->FirstChildElement("Objects");
     element = element->FirstChildElement("Mesh");
-    Mesh tri;
+    //Mesh tri;
+    int material_id_temp;
     while (element)
     {
         child = element->FirstChildElement("Material");
         stream << child->GetText() << std::endl;
-        stream >> tri.material_id;
+        stream >> material_id_temp;
 
         child = element->FirstChildElement("Faces");
         stream << child->GetText() << std::endl;
@@ -199,12 +201,11 @@ void Scene::loadFromXml(const std::string &filepath)
         while (!(stream >> face.v0_id).eof())
         {
             stream >> face.v1_id >> face.v2_id;
-            tri.faces.push_back(face);
+            triangles.push_back(Triangle {material_id_temp, face});
+            //tri.faces.push_back(face);
         }
         stream.clear();
 
-        meshes.push_back(tri);
-        tri.faces.clear();
         element = element->NextSiblingElement("Mesh");
     }
     stream.clear();

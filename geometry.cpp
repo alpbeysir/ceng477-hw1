@@ -17,8 +17,8 @@ pure float sphere_get_collision(const Sphere& self, const Ray& Ray) {
    return ((-b) - sqrtf(discriminant)) / (2.0f * a);
 }
 
-pure vec4f sphere_get_normal(const Sphere& self, vec4fc point) {
-   return div4f(sub4f(point, self.position), self.radius);
+pure vec4f sphere_get_normal(const Sphere* self, vec4fc point) {
+   return div4f(sub4f(point, self->position), self->radius);
 }
 
 pure float triangle_get_collision(const std::vector<vec4f>& vertices, const Face& self, const Ray& ray)

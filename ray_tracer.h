@@ -56,7 +56,7 @@ typedef vec4f (*pixel_position_function)(const Camera self, const size_t x, cons
 
 extern pixel_position_function pixel_positon;
 
-constfn static __always_inline vec4f cast_ray(const Ray self, cfloat t) {
+constfn static vec4f cast_ray(const Ray self, cfloat t) {
    return add4f(self.start, mul4sf(t, self.direction));
 }
 

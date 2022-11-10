@@ -1,39 +1,34 @@
 #include "ppm.h"
+#include <fstream>
 #include <stdexcept>
 
-void write_ppm(const char* filename, unsigned char* data, int width, int height)
+vec4fc vec127 = {127.0f, 127.0f, 127.0f, 127.0f};
+vec4fc vec128 = {128.0f, 128.0f, 128.0f, 128.0f};
+vec4fc vec255 = {255.0f, 255.0f, 255.0f, 255.0f};
+
+static std::array<unsigned char, 3> convert_to_zort(vec4fc v) {
+    std::array<unsigned char, 3> output;
+    auto arr = amake(vec255 * v);
+    output[0] = (unsigned char)arr[0];
+    output[1] = (unsigned char)arr[1];
+    output[2] = (unsigned char)arr[2];
+    return output;
+}
+
+void write_ppm(std::string filename, vec4f* data, int width, int height)
 {
-    FILE *outfile;
+    std::ofstream file;
+    file.open(filename);
 
-    if (fopen_s(&outfile, filename, "w") == NULL) 
+    file << "P6\n" << width << " " << height << "\n255\n";
+
+    for (size_t i = 0; i < width; ++i)
     {
-        throw std::runtime_error("Error: The ppm file cannot be opened for writing.");
-    }
-
-    (void) fprintf(outfile, "P3\n%d %d\n255\n", width, height);
-
-    unsigned char Color;
-    for (size_t j = 0, idx = 0; j < height; ++j)
-    {
-        for (size_t i = 0; i < width; ++i)
+        for (size_t j = 0; j < height; ++j)
         {
-            for (size_t c = 0; c < 3; ++c, ++idx)
-            {
-                Color = data[idx];
-
-                if (i == width - 1 && c == 2)
-                {
-                    (void) fprintf(outfile, "%d", Color);
-                }
-                else
-                {
-                    (void) fprintf(outfile, "%d ", Color);
-                }
-            }
+            auto converted = convert_to_zort(data[i * height + j]);
+            file << converted[0] << converted[1] << converted[2];
         }
-
-        (void) fprintf(outfile, "\n");
     }
-
-    (void) fclose(outfile);
+    file.close();
 }
