@@ -37,6 +37,8 @@ struct Face
     int v0_id;
     int v1_id;
     int v2_id;
+    vec4f edge0;
+    vec4f edge1;
 };
 
 struct Mesh

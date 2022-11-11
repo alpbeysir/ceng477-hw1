@@ -3,7 +3,7 @@
 #include <sstream>
 #include <stdexcept>
 
-#define TO_TEMP temp[0] >> temp[1] >> temp[2]
+#define TO_TEMP temp[0] >> temp[1] >> temp[2]; temp[3] = 0.0f
 
 void Scene::loadFromXml(const std::string &filepath)
 {
@@ -35,7 +35,7 @@ void Scene::loadFromXml(const std::string &filepath)
     }
     //
     stream >> TO_TEMP;
-    background_color = vmake(temp);
+    background_color = vmake(temp)/_mm_set1_ps(255.0f);
     // stream >> background_color.x >> background_color.y >> background_color.z;
 
     //Get ShadowRayEpsilon
@@ -111,7 +111,7 @@ void Scene::loadFromXml(const std::string &filepath)
     stream << child->GetText() << std::endl;
     //
     stream >> TO_TEMP;
-    ambient_light = vmake(temp);
+    ambient_light = vmake(temp)/_mm_set1_ps(255.0f);
     // stream >> ambient_light.x >> ambient_light.y >> ambient_light.z;
     element = element->FirstChildElement("PointLight");
     PointLight point_light;
@@ -201,6 +201,8 @@ void Scene::loadFromXml(const std::string &filepath)
         while (!(stream >> face.v0_id).eof())
         {
             stream >> face.v1_id >> face.v2_id;
+            face.edge0 = vertex_data[face.v1_id-1] - vertex_data[face.v0_id-1];
+            face.edge1 = vertex_data[face.v2_id-1] - vertex_data[face.v0_id-1];
             triangles.push_back(Triangle {material_id_temp, face});
             //tri.faces.push_back(face);
         }
@@ -223,6 +225,8 @@ void Scene::loadFromXml(const std::string &filepath)
         child = element->FirstChildElement("Indices");
         stream << child->GetText() << std::endl;
         stream >> triangle.indices.v0_id >> triangle.indices.v1_id >> triangle.indices.v2_id;
+        triangle.indices.edge0 = vertex_data[triangle.indices.v1_id-1] - vertex_data[triangle.indices.v0_id-1];
+        triangle.indices.edge1 = vertex_data[triangle.indices.v2_id-1] - vertex_data[triangle.indices.v0_id-1];
 
         triangles.push_back(triangle);
         element = element->NextSiblingElement("Triangle");

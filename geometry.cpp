@@ -1,11 +1,11 @@
 #include "geometry.h"
 #include "ray_tracer.h"
 
-pure float sphere_get_collision(const Sphere& self, const Ray& Ray) {
+pure float sphere_get_collision(const Sphere& self, const Ray& ray) {
    vec4fc C = self.position;
    cfloat r = self.radius;
-   vec4fc o = Ray.start;
-   vec4fc u = Ray.direction;
+   vec4fc o = ray.start;
+   vec4fc u = ray.direction;
 
    cfloat a = dot4f(u,u);
    vec4fc oc = sub4f(o,C);
@@ -13,6 +13,9 @@ pure float sphere_get_collision(const Sphere& self, const Ray& Ray) {
    cfloat c = dot4f(oc,oc) - (r*r);
 
    cfloat discriminant = (b*b) - (4.0f*a*c);
+   if(amake(ray.direction) == amake(vec4f{-0.4375, 0.5, -1, 0})) {
+      std::cout << ray.start << self.position << ray.direction << '\n';
+   }
 
    return ((-b) - sqrtf(discriminant)) / (2.0f * a);
 }
@@ -23,37 +26,35 @@ pure vec4f sphere_get_normal(const Sphere* self, vec4fc point) {
 
 pure float triangle_get_collision(const std::vector<vec4f>& vertices, const Face& self, const Ray& ray)
 {
-	vec4fc vertex0 = vertices[self.v0_id];
-   vec4fc vertex1 = vertices[self.v1_id];
-   vec4fc vertex2 = vertices[self.v2_id];
-   vec4fc edge1 = sub4f(vertex1, vertex0);
-   vec4fc edge2 = sub4f(vertex2, vertex0);
-   vec4fc pvec = cross4f(ray.direction, edge2);
-   float det = dot4f(edge1, pvec);
-   if(det < 0.005f) {
+	cfloat epsilon = 0.0000001;
+   vec4fc vertex0 = vertices[self.v0_id-1];
+   vec4fc vertex1 = vertices[self.v1_id-1];
+   vec4fc vertex2 = vertices[self.v2_id-1];
+   vec4fc edge1 = self.edge0;
+   vec4fc edge2 = self.edge1;
+   vec4fc h = cross4f(ray.direction, edge2);
+   cfloat a = dot4f(edge1, h);
+   if (a > -epsilon && a < epsilon)
       return nan("aabb");
-   }
-
-   float inv_det = 1.0f/det;
-
-   vec4fc tvec = sub4f(ray.start, vertex0);
-   cfloat u = dot4f(tvec, pvec) * inv_det;
-   if(u < 0.0f or u > 1.0f) {
+   cfloat f = 1.0/a;
+   vec4fc s = ray.start - vertex0;
+   cfloat u = f * dot4f(s,h);
+   if (u < 0.0 || u > 1.0)
       return nan("aabb");
-   }
-
-   vec4fc qvec = cross4f(tvec, edge1);
-   cfloat v = dot4f(ray.start, qvec) * inv_det;
-   if(v < 0.0f or v > 1.0f) {
+   vec4fc q = cross4f(s, edge1);
+   cfloat v = f * dot4f(ray.direction, q);
+   if (v < 0.0 || u + v > 1.0)
       return nan("aabb");
-   }
-
-   return dot4f(edge2, qvec) * inv_det;
+   float t = f * dot4f(edge2, q);
+   if (t > epsilon)
+      return t;
+   else
+      return nan("aabb");
 }
 
 pure vec4f triangle_get_normal(const std::vector<vec4f>& vertices, const Face& self)
 {
-	vec4fc edge1 = sub4f(vertices[self.v0_id], vertices[self.v1_id]);
-   vec4fc edge2 = sub4f(vertices[self.v0_id], vertices[self.v2_id]);
-   return cross4f(edge1, edge2);
+	vec4fc edge1 = self.edge0;
+   vec4fc edge2 = self.edge1;
+   return normalize4f(cross4f(edge1, edge2));
 }

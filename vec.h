@@ -160,4 +160,10 @@ static inline vec4f operator/(cfloat lhs, vec4fc rhs) {
 
 #endif
 
+static inline std::ostream& operator<<(std::ostream& os, vec4fc v) {
+   arr4fc arr = amake(v);
+   std::printf("vec4f{%g, %g, %g, %g}", arr[0], arr[1], arr[2], arr[3]);
+   return os;
+}
+
 #endif
