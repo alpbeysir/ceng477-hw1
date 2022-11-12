@@ -11,6 +11,8 @@ BUILDDIR=build
 BINDIR=bin
 SRCS = $(wildcard $(SRCDIR)/*.$(SRC_EXTENSION))
 OBJS = $(patsubst $(SRCDIR)/%.$(SRC_EXTENSION), $(OBJDIR)/%.$(OBJ_EXTENSION), $(SRCS))
+DEPENDS = $(patsubst $(SRCDIR)/%.$(SRC_EXTENSION),%.d,$(SRCS))
+HEADERS = $(wildcard $(INCDIR)/*.h)
 
 CFLAGS=-I"./$(INCDIR)" -O3
 LDFLAGS=-fPIC -lm -O3
@@ -25,8 +27,8 @@ run: build
 .PHONY: run
 
 build: $(OBJS)
-	@$(COMPILER) $^ -o $(BINDIR)/$(EXECNAME) $(LDFLAGS)
-	@echo COMPILE $<
+	@$(COMPILER) $(filter-out %.h,$^) -o $(BINDIR)/$(EXECNAME) $(LDFLAGS)
+	@echo LINKING $<
 .PHONY: build
 
 clean:
@@ -34,8 +36,10 @@ clean:
 	@echo RM $(OBJS)
 .PHONY: clean
 
+-include $(DEPENDS)
+
 $(OBJDIR)/%.$(OBJ_EXTENSION): $(SRCDIR)/%.$(SRC_EXTENSION)
-	@$(COMPILER) $(CFLAGS) -c $< -o $@
+	@$(COMPILER) $(CFLAGS) -MMD -MP -MF $(patsubst %.$(SRC_EXTENSION),%.d,$<) -c $< -o $@
 	@echo COMPILE $<
 
 init:
