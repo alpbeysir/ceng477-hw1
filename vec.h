@@ -166,4 +166,10 @@ static inline std::ostream& operator<<(std::ostream& os, vec4fc v) {
    return os;
 }
 
+static inline vec4f pow4f(vec4fc lhs, vec4fc rhs) {
+   arr4fc lhsa = amake(lhs);
+   arr4fc rhsa = amake(rhs);
+   return vec4f{powf(lhsa[0], rhsa[0]), powf(lhsa[1], rhsa[1]), powf(lhsa[2], rhsa[2]), powf(lhsa[3], rhsa[3])};
+}
+
 #endif

@@ -13,15 +13,17 @@ pure float sphere_get_collision(const Sphere& self, const Ray& ray) {
    cfloat c = dot4f(oc,oc) - (r*r);
 
    cfloat discriminant = (b*b) - (4.0f*a*c);
-   if(amake(ray.direction) == amake(vec4f{-0.4375, 0.5, -1, 0})) {
-      std::cout << ray.start << self.position << ray.direction << '\n';
-   }
+   // if(amake(ray.direction) == amake(vec4f{-0.4375, 0.5, -1, 0})) {
+   //    std::cout << ray.start << self.position << ray.direction << '\n';
+   // }
 
-   return ((-b) - sqrtf(discriminant)) / (2.0f * a);
+   cfloat sqrtDiscriminant = sqrtf(discriminant);
+
+   return ((-b) - sqrtDiscriminant) / (2.0f * a);
 }
 
 pure vec4f sphere_get_normal(const Sphere* self, vec4fc point) {
-   return div4f(sub4f(point, self->position), self->radius);
+   return (point - self->position) / self->radius;
 }
 
 pure float triangle_get_collision(const std::vector<vec4f>& vertices, const Face& self, const Ray& ray)

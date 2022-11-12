@@ -111,7 +111,7 @@ void Scene::loadFromXml(const std::string &filepath)
     stream << child->GetText() << std::endl;
     //
     stream >> TO_TEMP;
-    ambient_light = vmake(temp)/_mm_set1_ps(255.0f);
+    ambient_light = vmake(temp)/* /_mm_set1_ps(255.0f) */;
     // stream >> ambient_light.x >> ambient_light.y >> ambient_light.z;
     element = element->FirstChildElement("PointLight");
     PointLight point_light;
