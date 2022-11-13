@@ -34,10 +34,16 @@ void trace(int x, int y, const Scene& scene, Ray ray, int depth, vec4f reflectan
 		if(x == 120 and y == 360) {
 			int a = 0;
 		}
-		color += (scene.ambient_light + diffuse_shade + specular_shade) * reflectance;
+		if(obj.type == COLLISION_OBJECT_SPHERE and material.is_mirror) {
+			int a = 0;
+		}
+		color += (material.ambient*scene.ambient_light + diffuse_shade + specular_shade) * reflectance;
+		// color = norm*128.0f + 127.0f;
 		if(material.is_mirror) {
+			// color = (normalize4f(bounced_ray.direction) * 128.0f) + _mm_set1_ps(127.0f);
 			reflectance *= material.mirror;
 			ray = bounced_ray;
+			// break;
 		} else {
 			break;
 		}
