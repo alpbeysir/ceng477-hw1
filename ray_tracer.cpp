@@ -1,7 +1,6 @@
 #include "collision_object.h"
 #include "ray_tracer.h"
 
-//TODO: convert to new near plane format
 constfn vec4f plane_pixel_position(const Camera self, const size_t x, const size_t y) {
    cfloat x_ratio = ((float)x / (float)self.image_width);
    cfloat y_ratio = ((float)y / (float)self.image_height);

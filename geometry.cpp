@@ -84,8 +84,8 @@ std::pair<float, CollisionObject> nearest_object(const Ray& ray, const std::vect
 
 	for (auto& tri : tris)
 	{
-		if(len4f(ray.direction - vec4f{0.45, 0.4, -1, 0}) < 0.0000006f)
-			std::cout << "ZORT:\t" << '\t' << vertices[tri.indices.v0_id] << '\t' << vertices[tri.indices.v1_id] << '\t' << vertices[tri.indices.v2_id] << "\n";
+		// if(len4f(ray.direction - vec4f{0.45, 0.4, -1, 0}) < 0.0000006f)
+		// 	std::cout << "ZORT:\t" << '\t' << vertices[tri.indices.v0_id] << '\t' << vertices[tri.indices.v1_id] << '\t' << vertices[tri.indices.v2_id] << "\n";
 		float t = triangle_get_collision(vertices, tri.indices, ray);
 		if (t_min > t)
 		{
@@ -98,7 +98,7 @@ std::pair<float, CollisionObject> nearest_object(const Ray& ray, const std::vect
 	return std::pair<float, CollisionObject>(t_min, obj);
 }
 
-bool do_geometry(const Scene& scene, const Ray& ray, bool& hit_info, int depth, float& t_min, CollisionObject& obj, Material& material, vec4f& hit_point, vec4f& norm, vec4f& color) {
+bool do_geometry(const Scene& scene, const Ray& ray, bool& hit_info, int depth, vec4fc reflectance, float& t_min, CollisionObject& obj, Material& material, vec4f& hit_point, vec4f& norm) {
 	auto nearest = nearest_object(ray, scene.spheres,  scene.triangles, scene.vertex_data);
 	t_min = nearest.first;
 	obj = nearest.second;
@@ -107,7 +107,6 @@ bool do_geometry(const Scene& scene, const Ray& ray, bool& hit_info, int depth, 
 	if (obj.type == COLLISION_OBJECT_INVALID) {
 		if(depth == scene.max_recursion_depth) {
 			hit_info = false;
-			color = scene.background_color;
 		}
 		return false;
 	}
