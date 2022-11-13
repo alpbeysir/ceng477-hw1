@@ -26,6 +26,22 @@ pure vec4f sphere_get_normal(const Sphere* self, vec4fc point) {
    return (point - self->position) / self->radius;
 }
 
+pure bool aabb_get_collision(const Ray& ray, vec4fc bminv, vec4fc bmaxv)
+{
+	auto bmin = amake(bminv), bmax = amake(bmaxv);
+	auto rayo = amake(ray.start), rayd = amake(ray.direction);
+
+    float tx1 = (bmin[0] - rayo[0]) / rayd[0], tx2 = (bmax[0] - rayo[0]) / rayd[0];
+    float tmin = std::min(tx1, tx2), tmax = std::max(tx1, tx2);
+    float ty1 = (bmin[1] - rayo[1]) / rayd[1], ty2 = (bmax[1] - rayo[1]) / rayd[1];
+    tmin = std::max(tmin, std::min( ty1, ty2 ) ), tmax = std::min( tmax, std::max( ty1, ty2 ) );
+    float tz1 = (bmin[2] - rayo[2]) / rayd[2], tz2 = (bmax[2] - rayo[2]) / rayd[2];
+    tmin = std::max( tmin, std::min( tz1, tz2 ) ), tmax =  std::min( tmax, std::max( tz1, tz2 ) );
+
+	// assume 1 for ray.t
+    return tmax >= tmin && tmin < /*ray.t*/1 && tmax > 0;
+}
+
 pure float triangle_get_collision(const std::vector<vec4f>& vertices, const Face& self, const Ray& ray)
 {
 	cfloat epsilon = 0.0000001;
@@ -52,6 +68,27 @@ pure float triangle_get_collision(const std::vector<vec4f>& vertices, const Face
       return t;
    else
       return nan("aabb");
+}
+
+pure float bvh_get_collision(const Scene& scene, const BVHNode* const nodes, const Ray& ray, const int idx) {
+    const BVHNode& node = nodes[idx];
+    if (!aabb_get_collision(ray, node.bbmin, node.bbmax))
+		return nan("aabb");
+	
+    if (node.tri_count > 0)
+    {
+		float tmin = INFINITY;
+        for (int i = 0; i < node.tri_count; i++) {
+			const Face& indices = scene.triangles[i].indices;
+            float cur_result = triangle_get_collision(scene.vertex_data, indices, ray);
+			if (cur_result < tmin) tmin = cur_result;
+		}
+		return tmin;
+    }
+    else
+    {
+        return std::min(bvh_get_collision(scene, nodes, ray, node.left), bvh_get_collision(scene, nodes, ray, node.left + 1));
+    }
 }
 
 pure vec4f triangle_get_normal(const std::vector<vec4f>& vertices, const Face& self)
@@ -197,7 +234,7 @@ void subdivide_node(Scene& scene, BVHNode* nodes, vec4f* centroids, BVHNode& nod
 BVHNode* buildBVH(Scene& scene) {
 	int tri_count = scene.triangles.size();
     vec4f centroids[tri_count];
-	BVHNode* nodes = new BVHNode[tri_count*2 - 1];
+	BVHNode* nodes = new BVHNode[std::max(1, tri_count*2 - 1)];
 
 	int node_count = 1;
 	BVHNode& root = nodes[0];
@@ -214,5 +251,6 @@ BVHNode* buildBVH(Scene& scene) {
 	set_node_bounds(scene, root);
 	subdivide_node(scene, nodes, centroids, root, node_count);
 
+	std::cout << "BVH success: node count = " << node_count << std::endl;
 	return nodes;
 }
