@@ -172,4 +172,16 @@ static inline vec4f pow4f(vec4fc lhs, vec4fc rhs) {
    return vec4f{powf(lhsa[0], rhsa[0]), powf(lhsa[1], rhsa[1]), powf(lhsa[2], rhsa[2]), powf(lhsa[3], rhsa[3])};
 }
 
+static inline vec4f min4f(vec4fc lhs, vec4fc rhs) {
+   arr4fc lhsa = amake(lhs);
+   arr4fc rhsa = amake(rhs);
+   return vec4f{fmin(lhsa[0], rhsa[0]), fmin(lhsa[1], rhsa[1]), fmin(lhsa[2], rhsa[2]), fmin(lhsa[3], rhsa[3])};
+}
+
+static inline vec4f max4f(vec4fc lhs, vec4fc rhs) {
+   arr4fc lhsa = amake(lhs);
+   arr4fc rhsa = amake(rhs);
+   return vec4f{fmax(lhsa[0], rhsa[0]), fmax(lhsa[1], rhsa[1]), fmax(lhsa[2], rhsa[2]), fmax(lhsa[3], rhsa[3])};
+}
+
 #endif

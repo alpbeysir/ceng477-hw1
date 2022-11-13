@@ -128,3 +128,91 @@ bool do_geometry(const Scene& scene, const Ray& ray, bool& hit_info, int depth, 
 	}
 	return true;
 }
+
+void set_node_bounds(const Scene& scene, BVHNode& node) {
+	node.bbmin = vec4f{INFINITY, INFINITY, INFINITY, INFINITY};
+	node.bbmax = vec4f{-INFINITY, -INFINITY, -INFINITY, -INFINITY};
+
+	for (int first = node.tri_start, i = 0; i < node.tri_count; i++) {
+		const Face& indices = scene.triangles[i].indices;
+
+		node.bbmin = min4f( node.bbmin, scene.vertex_data[indices.v0_id] );
+        node.bbmin = min4f( node.bbmin, scene.vertex_data[indices.v1_id] );
+        node.bbmin = min4f( node.bbmin, scene.vertex_data[indices.v2_id] );
+        node.bbmax = max4f( node.bbmax, scene.vertex_data[indices.v0_id] );
+        node.bbmax = max4f( node.bbmax, scene.vertex_data[indices.v1_id] );
+        node.bbmax = max4f( node.bbmax, scene.vertex_data[indices.v2_id] );
+	}
+}
+
+std::pair<int, float> get_split_pos(const BVHNode& node) {
+	vec4f extent = node.bbmax - node.bbmin;
+	int axis = 0;
+	arr4f extenta = amake(extent);
+	if (extenta[1] > extenta[0]) axis = 1;
+	if (extenta[2] > extent[axis]) axis = 2;
+	return {axis, node.bbmin[axis] + extent[axis] * 0.5f};
+}
+
+void subdivide_node(Scene& scene, BVHNode* nodes, vec4f* centroids, BVHNode& node, int& node_count) {
+	if (node.tri_count <= 2) return;
+
+	// Reorder triangles
+	auto split_pos = get_split_pos(node);	
+	int i = node.tri_start;
+	int j = i + node.tri_count - 1;
+	while (i <= j)
+	{
+		arr4fc centroid = amake(centroids[i]);
+		if (centroid[split_pos.first] < split_pos.second)
+			i++;
+		else
+			std::swap(scene.triangles[i], scene.triangles[j--]);
+	}
+
+	int left_count = i - node.tri_start;
+	if (left_count == 0 || left_count == node.tri_count)
+		return;
+
+	int left_child = node_count++;
+	int right_child = node_count++;
+	node.left = left_child;
+
+	nodes[left_child].tri_start = node.tri_start;
+	nodes[left_child].tri_count = left_count;
+
+	nodes[right_child].tri_start = i;
+	nodes[right_child].tri_count = node.tri_count - left_count;
+
+	// this is now an interior node
+	node.tri_count = 0;
+
+	set_node_bounds(scene, nodes[left_child]);
+	set_node_bounds(scene, nodes[right_child]);
+
+	subdivide_node(scene, nodes, centroids, nodes[left_child], node_count);
+	subdivide_node(scene, nodes, centroids, nodes[right_child], node_count);
+}
+
+BVHNode* buildBVH(Scene& scene) {
+	int tri_count = scene.triangles.size();
+    vec4f centroids[tri_count];
+	BVHNode* nodes = new BVHNode[tri_count*2 - 1];
+
+	int node_count = 1;
+	BVHNode& root = nodes[0];
+	root.left = 0;
+	root.tri_start = 0, root.tri_count = tri_count;
+
+	// Calculate triangle centers
+    for (int i = 0; i < tri_count; i++) {
+		const Face& indices =  scene.triangles[i].indices;
+        centroids[i] = scene.vertex_data[indices.v0_id] + scene.vertex_data[indices.v1_id] + scene.vertex_data[indices.v2_id];
+		centroids[i] /= 3.0f;
+    }
+
+	set_node_bounds(scene, root);
+	subdivide_node(scene, nodes, centroids, root, node_count);
+
+	return nodes;
+}

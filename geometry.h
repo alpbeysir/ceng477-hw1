@@ -12,4 +12,12 @@ pure vec4f triangle_get_normal(const std::vector<vec4f>& vertices, const Face& s
 
 bool do_geometry(const Scene& scene, const Ray& ray, bool& hit_info, int depth, vec4fc reflectance, float& t_min, CollisionObject& obj, Material& material, vec4f& hit_point, vec4f& norm);
 
+struct BVHNode {
+    vec4f bbmin, bbmax;
+    int left;
+    int tri_start, tri_count;
+};
+
+BVHNode* buildBVH(const Scene& scene);
+
 #endif
