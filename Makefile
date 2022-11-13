@@ -14,8 +14,8 @@ OBJS = $(patsubst $(SRCDIR)/%.$(SRC_EXTENSION), $(OBJDIR)/%.$(OBJ_EXTENSION), $(
 DEPENDS = $(patsubst $(SRCDIR)/%.$(SRC_EXTENSION),%.d,$(SRCS))
 HEADERS = $(wildcard $(INCDIR)/*.h)
 
-CFLAGS=-I"./$(INCDIR)" -O3 -Wno-ignored-attributes
-LDFLAGS=-fPIC -lm -O3
+CFLAGS=-I"./$(INCDIR)" -O3 -Wno-ignored-attributes -fopenmp
+LDFLAGS=-fPIC -lm -O3 -fopenmp
 
 EXECNAME=main
 ARGS=

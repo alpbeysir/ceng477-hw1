@@ -28,7 +28,7 @@ void trace(int x, int y, const Scene& scene, Ray ray, int depth, vec4f reflectan
 
 		Ray bounced_ray(
 			hit_point + norm*scene.shadow_ray_epsilon,
-			-(-2.0f * dot4f(norm, ray.direction)*norm + ray.direction)
+			-2.0f * dot4f(norm, ray.direction)*norm + ray.direction
 		);
 
 		if(x == 120 and y == 360) {
@@ -57,6 +57,7 @@ void render_camera(Scene& scene, int camIndex)
 	auto image = new vec4f[current_camera.image_width * current_camera.image_height];
 	auto image_hit_info = new bool[current_camera.image_width * current_camera.image_height];
 
+	#pragma omp parallel for
 	for (int i = 0; i < current_camera.image_width; i++)
 	{
 		for (int j = 0; j < current_camera.image_height; j++)
@@ -89,5 +90,6 @@ int main(int argc, char* argv[])
 	for (size_t i = 0; i < scene.cameras.size(); i++)
 	{
 		render_camera(scene, i);
+		std::cout << "Camera " << i+1 << " done.\n";
 	}
 }
