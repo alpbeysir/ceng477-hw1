@@ -13,13 +13,10 @@ pure float sphere_get_collision(const Sphere& self, const Ray& ray) {
    cfloat c = dot4f(oc,oc) - (r*r);
 
    cfloat discriminant = (b*b) - (4.0f*a*c);
-   // if(amake(ray.direction) == amake(vec4f{-0.4375, 0.5, -1, 0})) {
-   //    std::cout << ray.start << self.position << ray.direction << '\n';
-   // }
 
-   cfloat sqrtDiscriminant = sqrtf(discriminant);
+   cfloat t = ((-b) - sqrtf(discriminant)) / (2.0f * a);
 
-   return ((-b) - sqrtDiscriminant) / (2.0f * a);
+   return t < 0.0f ? nan("aabb") : t;
 }
 
 pure vec4f sphere_get_normal(const Sphere* self, vec4fc point) {
@@ -28,18 +25,24 @@ pure vec4f sphere_get_normal(const Sphere* self, vec4fc point) {
 
 pure bool aabb_get_collision(const Ray& ray, vec4fc bminv, vec4fc bmaxv)
 {
-	auto bmin = amake(bminv), bmax = amake(bmaxv);
-	auto rayo = amake(ray.start), rayd = amake(ray.direction);
+	vec4fc dirfrac = 1.0 / ray.direction;
+	arr4fc r1 = amake((bminv - ray.start) * dirfrac);
+	arr4fc r2 = amake((bmaxv - ray.start) * dirfrac);
 
-    float tx1 = (bmin[0] - rayo[0]) / rayd[0], tx2 = (bmax[0] - rayo[0]) / rayd[0];
-    float tmin = std::min(tx1, tx2), tmax = std::max(tx1, tx2);
-    float ty1 = (bmin[1] - rayo[1]) / rayd[1], ty2 = (bmax[1] - rayo[1]) / rayd[1];
-    tmin = std::max(tmin, std::min( ty1, ty2 ) ), tmax = std::min( tmax, std::max( ty1, ty2 ) );
-    float tz1 = (bmin[2] - rayo[2]) / rayd[2], tz2 = (bmax[2] - rayo[2]) / rayd[2];
-    tmin = std::max( tmin, std::min( tz1, tz2 ) ), tmax =  std::min( tmax, std::max( tz1, tz2 ) );
+	float tmin = std::max(std::max(std::min(r1[0], r2[0]), std::min(r1[1], r2[1])), std::min(r1[2], r2[2]));
+	float tmax = std::min(std::min(std::max(r1[0], r2[0]), std::max(r1[1], r2[1])), std::max(r1[2], r2[2]));
 
-	// assume 1 for ray.t
-    return tmax >= tmin && tmin < /*ray.t*/1 && tmax > 0;
+	if (tmax < 0)
+	{
+		return false;
+	}
+
+	if (tmin > tmax)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 pure float triangle_get_collision(const std::vector<vec4f>& vertices, const Face& self, const Ray& ray)
@@ -70,46 +73,45 @@ pure float triangle_get_collision(const std::vector<vec4f>& vertices, const Face
       return nan("aabb");
 }
 
-pure float bvh_get_collision(const Scene& scene, const BVHNode* const nodes, const Ray& ray, const int idx) {
+pure std::pair<float,const Triangle*> bvh_get_collision(const Scene& scene, const BVHNode* const nodes, const Ray& ray, const int idx)
+{
     const BVHNode& node = nodes[idx];
+	const Triangle* ret = NULL;
     if (!aabb_get_collision(ray, node.bbmin, node.bbmax))
-		return nan("aabb");
+		return std::pair<float,Triangle*>( nan("aabb"), NULL );
 	
     if (node.tri_count > 0)
     {
 		float tmin = INFINITY;
-        for (int i = 0; i < node.tri_count; i++) {
+        for (int i = node.tri_start; i < node.tri_start + node.tri_count; i++) {
 			const Face& indices = scene.triangles[i].indices;
             float cur_result = triangle_get_collision(scene.vertex_data, indices, ray);
-			if (cur_result < tmin) tmin = cur_result;
+			if (cur_result < tmin)
+			{
+				tmin = cur_result;
+				ret = &scene.triangles[i];
+			}
 		}
-		return tmin;
+		return std::pair<float, const Triangle*>(tmin, ret);
     }
     else
     {
-        return std::min(bvh_get_collision(scene, nodes, ray, node.left), bvh_get_collision(scene, nodes, ray, node.left + 1));
+		auto left_res = bvh_get_collision(scene, nodes, ray, node.left);
+		auto right_res = bvh_get_collision(scene, nodes, ray, node.left + 1);
+		if (left_res.first < right_res.first) return left_res;
+		else return right_res;
     }
 }
 
-pure vec4f triangle_get_normal(const std::vector<vec4f>& vertices, const Face& self)
-{
-	vec4fc edge1 = self.edge0;
-   vec4fc edge2 = self.edge1;
-   return normalize4f(cross4f(edge1, edge2));
-}
 
-std::pair<float, CollisionObject> nearest_object(const Ray& ray, const std::vector<Sphere>& spheres, const std::vector<Triangle>& tris, const std::vector<vec4f>& vertices) {
+
+std::pair<float, CollisionObject> nearest_object(const Ray& ray, const Scene& scene) {
 	float t_min = INFINITY;
 	CollisionObject obj;
 
-	for (auto& sphere : spheres)
+	for (const auto& sphere : scene.spheres)
 	{
-		// std::cout << ray.direction << '\t' << ray.start << '\t' << sphere.position << ' ' << sphere.radius << '\n';
 		float t = sphere_get_collision(sphere, ray);
-
-		if(amake(ray.direction) == amake(vec4f{-0.45, 1.5, -1, 0})) {
-			std::cout << t << '\n';
-		}
 		
 		if (t_min > t)
 		{
@@ -119,35 +121,37 @@ std::pair<float, CollisionObject> nearest_object(const Ray& ray, const std::vect
 		}
 	}
 
-	for (auto& tri : tris)
+	const auto [t, tri] = bvh_get_collision(scene, scene.bvh, ray);
+
+	if (t_min > t)
 	{
-		// if(len4f(ray.direction - vec4f{0.45, 0.4, -1, 0}) < 0.0000006f)
-		// 	std::cout << "ZORT:\t" << '\t' << vertices[tri.indices.v0_id] << '\t' << vertices[tri.indices.v1_id] << '\t' << vertices[tri.indices.v2_id] << "\n";
-		float t = triangle_get_collision(vertices, tri.indices, ray);
-		if (t_min > t)
-		{
-			t_min = t;
-			obj.type = COLLISION_OBJECT_TRI;
-			obj.data.tri = &tri;
-		}
+		t_min = t;
+		obj.type = COLLISION_OBJECT_TRI;
+		obj.data.tri = tri;
 	}
+
+	//for (const auto& tri : scene.triangles)
+	//{
+	//	// std::cout << ray.direction << '\t' << ray.start << '\t' << sphere.position << ' ' << sphere.radius << '\n';
+	//	float t = triangle_get_collision(scene.vertex_data, tri.indices, ray);
+
+	//	if (t_min > t)
+	//	{
+	//		t_min = t;
+	//		obj.type = COLLISION_OBJECT_TRI;
+	//		obj.data.tri = &tri;
+	//	}
+	//}
 
 	return std::pair<float, CollisionObject>(t_min, obj);
 }
 
-bool do_geometry(const Scene& scene, const Ray& ray, bool& hit_info, int depth, vec4fc reflectance, float& t_min, CollisionObject& obj, Material& material, vec4f& hit_point, vec4f& norm) {
-	auto nearest = nearest_object(ray, scene.spheres,  scene.triangles, scene.vertex_data);
+bool do_geometry(const Scene& scene, const Ray& ray, float& t_min, CollisionObject& obj, Material& material, vec4f& hit_point, vec4f& norm) {
+	auto nearest = nearest_object(ray, scene);
 	t_min = nearest.first;
 	obj = nearest.second;
-	
-
-	if (obj.type == COLLISION_OBJECT_INVALID) {
-		if(depth == scene.max_recursion_depth) {
-			hit_info = false;
-		}
+	if (obj.type == COLLISION_OBJECT_INVALID)
 		return false;
-	}
-	hit_info = true;
 
 	hit_point = cast_ray(ray, t_min);
 	switch (obj.type)
@@ -170,7 +174,7 @@ void set_node_bounds(const Scene& scene, BVHNode& node) {
 	node.bbmin = vec4f{INFINITY, INFINITY, INFINITY, INFINITY};
 	node.bbmax = vec4f{-INFINITY, -INFINITY, -INFINITY, -INFINITY};
 
-	for (int first = node.tri_start, i = 0; i < node.tri_count; i++) {
+	for (int i = node.tri_start; i < node.tri_start + node.tri_count; i++) {
 		const Face& indices = scene.triangles[i].indices;
 
 		node.bbmin = min4f( node.bbmin, scene.vertex_data[indices.v0_id] );
@@ -183,28 +187,31 @@ void set_node_bounds(const Scene& scene, BVHNode& node) {
 }
 
 std::pair<int, float> get_split_pos(const BVHNode& node) {
-	vec4f extent = node.bbmax - node.bbmin;
+	arr4fc extent = amake(node.bbmax - node.bbmin);
 	int axis = 0;
-	arr4f extenta = amake(extent);
-	if (extenta[1] > extenta[0]) axis = 1;
-	if (extenta[2] > extent[axis]) axis = 2;
-	return {axis, node.bbmin[axis] + extent[axis] * 0.5f};
+	if (extent[1] > extent[0]) axis = 1;
+	if (extent[2] > extent[axis]) axis = 2;
+	return {axis, node.bbmin[axis] + extent[axis]*0.5f};
 }
 
-void subdivide_node(Scene& scene, BVHNode* nodes, vec4f* centroids, BVHNode& node, int& node_count) {
+void subdivide_node(Scene& scene, BVHNode* nodes, BVHNode& node, int& node_count) {
 	if (node.tri_count <= 2) return;
 
 	// Reorder triangles
-	auto split_pos = get_split_pos(node);	
+	const auto [axis, split_point] = get_split_pos(node);
 	int i = node.tri_start;
 	int j = i + node.tri_count - 1;
 	while (i <= j)
 	{
-		arr4fc centroid = amake(centroids[i]);
-		if (centroid[split_pos.first] < split_pos.second)
+		if (scene.triangles[i].indices.centroid[axis] < split_point)
+		{
 			i++;
+		}
 		else
-			std::swap(scene.triangles[i], scene.triangles[j--]);
+		{
+			std::swap(scene.triangles[i], scene.triangles[j]);
+			j--;
+		}
 	}
 
 	int left_count = i - node.tri_start;
@@ -222,18 +229,18 @@ void subdivide_node(Scene& scene, BVHNode* nodes, vec4f* centroids, BVHNode& nod
 	nodes[right_child].tri_count = node.tri_count - left_count;
 
 	// this is now an interior node
+	node.tri_start = -1;
 	node.tri_count = 0;
 
 	set_node_bounds(scene, nodes[left_child]);
 	set_node_bounds(scene, nodes[right_child]);
 
-	subdivide_node(scene, nodes, centroids, nodes[left_child], node_count);
-	subdivide_node(scene, nodes, centroids, nodes[right_child], node_count);
+	subdivide_node(scene, nodes, nodes[left_child], node_count);
+	subdivide_node(scene, nodes, nodes[right_child], node_count);
 }
 
 BVHNode* buildBVH(Scene& scene) {
 	int tri_count = scene.triangles.size();
-    vec4f centroids[tri_count];
 	BVHNode* nodes = new BVHNode[std::max(1, tri_count*2 - 1)];
 
 	int node_count = 1;
@@ -241,16 +248,17 @@ BVHNode* buildBVH(Scene& scene) {
 	root.left = 0;
 	root.tri_start = 0, root.tri_count = tri_count;
 
-	// Calculate triangle centers
-    for (int i = 0; i < tri_count; i++) {
-		const Face& indices =  scene.triangles[i].indices;
-        centroids[i] = scene.vertex_data[indices.v0_id] + scene.vertex_data[indices.v1_id] + scene.vertex_data[indices.v2_id];
-		centroids[i] /= 3.0f;
-    }
-
 	set_node_bounds(scene, root);
-	subdivide_node(scene, nodes, centroids, root, node_count);
+	subdivide_node(scene, nodes, root, node_count);
 
 	std::cout << "BVH success: node count = " << node_count << std::endl;
+
+	int debug_tri_count = 0;
+	for (int i = 0; i < node_count; i++)
+	{
+		debug_tri_count += nodes[i].tri_count;
+	}
+	std::cout << "BVH tri count: " << debug_tri_count << " Mesh tri count: " << tri_count << std::endl;
+
 	return nodes;
 }
