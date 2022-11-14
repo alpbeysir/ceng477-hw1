@@ -1,5 +1,6 @@
 #include "geometry.h"
 #include "ray_tracer.h"
+#include <algorithm>
 
 pure float sphere_get_collision(const Sphere& self, const Ray& ray) {
    vec4fc C = self.position;
@@ -25,7 +26,7 @@ pure vec4f sphere_get_normal(const Sphere* self, vec4fc point) {
 
 pure bool aabb_get_collision(const Ray& ray, vec4fc bminv, vec4fc bmaxv)
 {
-	vec4fc dirfrac = 1.0 / ray.direction;
+	vec4fc dirfrac = _mm_set1_ps(1.0) / ray.direction;
 	arr4fc r1 = amake((bminv - ray.start) * dirfrac);
 	arr4fc r2 = amake((bmaxv - ray.start) * dirfrac);
 
@@ -48,29 +49,29 @@ pure bool aabb_get_collision(const Ray& ray, vec4fc bminv, vec4fc bmaxv)
 pure float triangle_get_collision(const std::vector<vec4f>& vertices, const Face& self, const Ray& ray)
 {
 	cfloat epsilon = 0.0000001;
-   vec4fc vertex0 = vertices[self.v0_id-1];
-   vec4fc vertex1 = vertices[self.v1_id-1];
-   vec4fc vertex2 = vertices[self.v2_id-1];
-   vec4fc edge1 = self.edge0;
-   vec4fc edge2 = self.edge1;
-   vec4fc h = cross4f(ray.direction, edge2);
-   cfloat a = dot4f(edge1, h);
-   if (a > -epsilon && a < epsilon)
-      return nan("aabb");
-   cfloat f = 1.0/a;
-   vec4fc s = ray.start - vertex0;
-   cfloat u = f * dot4f(s,h);
-   if (u < 0.0 || u > 1.0)
-      return nan("aabb");
-   vec4fc q = cross4f(s, edge1);
-   cfloat v = f * dot4f(ray.direction, q);
-   if (v < 0.0 || u + v > 1.0)
-      return nan("aabb");
-   float t = f * dot4f(edge2, q);
-   if (t > epsilon)
-      return t;
-   else
-      return nan("aabb");
+	vec4fc vertex0 = vertices[self.v0_id - 1];
+	vec4fc vertex1 = vertices[self.v1_id - 1];
+	vec4fc vertex2 = vertices[self.v2_id - 1];
+	vec4fc edge1 = self.edge0;
+	vec4fc edge2 = self.edge1;
+	vec4fc h = cross4f(ray.direction, edge2);
+	cfloat a = dot4f(edge1, h);
+	if (a > -epsilon && a < epsilon)
+		return nan("aabb");
+	cfloat f = 1.0 / a;
+	vec4fc s = ray.start - vertex0;
+	cfloat u = f * dot4f(s, h);
+	if (u < 0.0 || u > 1.0)
+		return nan("aabb");
+	vec4fc q = cross4f(s, edge1);
+	cfloat v = f * dot4f(ray.direction, q);
+	if (v < 0.0 || u + v > 1.0)
+		return nan("aabb");
+	float t = f * dot4f(edge2, q);
+	if (t > epsilon)
+		return t;
+	else
+		return nan("aabb");
 }
 
 pure std::pair<float,const Triangle*> bvh_get_collision(const Scene& scene, const BVHNode* const nodes, const Ray& ray, const int idx)
@@ -103,8 +104,6 @@ pure std::pair<float,const Triangle*> bvh_get_collision(const Scene& scene, cons
     }
 }
 
-
-
 std::pair<float, CollisionObject> nearest_object(const Ray& ray, const Scene& scene) {
 	float t_min = INFINITY;
 	CollisionObject obj;
@@ -122,7 +121,6 @@ std::pair<float, CollisionObject> nearest_object(const Ray& ray, const Scene& sc
 	}
 
 	const auto [t, tri] = bvh_get_collision(scene, scene.bvh, ray);
-
 	if (t_min > t)
 	{
 		t_min = t;
@@ -132,7 +130,6 @@ std::pair<float, CollisionObject> nearest_object(const Ray& ray, const Scene& sc
 
 	//for (const auto& tri : scene.triangles)
 	//{
-	//	// std::cout << ray.direction << '\t' << ray.start << '\t' << sphere.position << ' ' << sphere.radius << '\n';
 	//	float t = triangle_get_collision(scene.vertex_data, tri.indices, ray);
 
 	//	if (t_min > t)
@@ -201,6 +198,7 @@ void subdivide_node(Scene& scene, BVHNode* nodes, BVHNode& node, int& node_count
 	const auto [axis, split_point] = get_split_pos(node);
 	int i = node.tri_start;
 	int j = i + node.tri_count - 1;
+
 	while (i <= j)
 	{
 		if (scene.triangles[i].indices.centroid[axis] < split_point)
@@ -209,12 +207,14 @@ void subdivide_node(Scene& scene, BVHNode* nodes, BVHNode& node, int& node_count
 		}
 		else
 		{
-			std::swap(scene.triangles[i], scene.triangles[j]);
+			Triangle temp = scene.triangles[i];
+			scene.triangles[i] = scene.triangles[j];
+			scene.triangles[j] = temp;
 			j--;
 		}
-	}
-
+	}	
 	int left_count = i - node.tri_start;
+
 	if (left_count == 0 || left_count == node.tri_count)
 		return;
 
