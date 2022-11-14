@@ -9,6 +9,7 @@ bool is_shadowed(const Ray& ray, const std::vector<Sphere>& spheres, const std::
 			return true;
 	}
 
+	// TODO: Apply BVH
 	for (auto& tri : tris)
 	{
 		float t = triangle_get_collision(vertices, tri.indices, ray);
@@ -32,7 +33,7 @@ void do_shading(const Scene& scene, vec4fc hit_point, vec4fc norm, const Materia
 	for(const auto& light : scene.point_lights) {
 		Ray shadow_ray = Ray::from_to(hit_point + norm*scene.shadow_ray_epsilon, light.position);
 		if (is_shadowed(shadow_ray, scene.spheres, scene.triangles, scene.vertex_data))
-			continue;;
+			continue;
 		vec4fc lh = shadow_ray.direction;
 		cfloat r2 = dot4f(lh, lh);
 		vec4fc zor = light.intensity / r2;

@@ -57,14 +57,9 @@ typedef vec4f (*pixel_position_function)(const Camera self, const size_t x, cons
 extern pixel_position_function pixel_positon;
 
 constfn static vec4f cast_ray(const Ray self, cfloat t) {
-   return add4f(self.start, mul4sf(t, self.direction));
+    return add4f(self.start, mul4sf(t, normalize4f(self.direction)));
 }
 
 constfn vec4f plane_pixel_position(const Camera self, const size_t x, const size_t y);
-
-typedef struct CollisionObject CollisionObject;
-// #include <collision_object.h>
-
-pure Color trace_ray(const Ray self, size_t objects_len, CollisionObject* const objects, const size_t depth);
 
 #endif

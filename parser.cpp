@@ -203,8 +203,9 @@ void Scene::loadFromXml(const std::string &filepath)
             stream >> face.v1_id >> face.v2_id;
             face.edge0 = vertex_data[face.v1_id-1] - vertex_data[face.v0_id-1];
             face.edge1 = vertex_data[face.v2_id-1] - vertex_data[face.v0_id-1];
+            face.norm = normalize4f(cross4f(face.edge0, face.edge1));
+            face.centroid = amake((vertex_data[face.v0_id] + vertex_data[face.v1_id] + vertex_data[face.v2_id]) / 3.0f);
             triangles.push_back(Triangle {material_id_temp, face});
-            //tri.faces.push_back(face);
         }
         stream.clear();
 
@@ -227,6 +228,8 @@ void Scene::loadFromXml(const std::string &filepath)
         stream >> triangle.indices.v0_id >> triangle.indices.v1_id >> triangle.indices.v2_id;
         triangle.indices.edge0 = vertex_data[triangle.indices.v1_id-1] - vertex_data[triangle.indices.v0_id-1];
         triangle.indices.edge1 = vertex_data[triangle.indices.v2_id-1] - vertex_data[triangle.indices.v0_id-1];
+        triangle.indices.norm = normalize4f(cross4f(triangle.indices.edge0, triangle.indices.edge1));
+        triangle.indices.centroid = amake((vertex_data[triangle.indices.v0_id] + vertex_data[triangle.indices.v1_id] + vertex_data[triangle.indices.v2_id]) / 3.0f);
 
         triangles.push_back(triangle);
         element = element->NextSiblingElement("Triangle");

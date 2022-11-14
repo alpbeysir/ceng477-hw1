@@ -5,6 +5,13 @@
 #include <vector>
 #include "vec.h"
 
+struct BVHNode
+{
+    vec4f bbmin, bbmax;
+    int left;
+    int tri_start, tri_count;
+};
+
 struct Camera
 {
     vec4f position;
@@ -39,6 +46,8 @@ struct Face
     int v2_id;
     vec4f edge0;
     vec4f edge1;
+    vec4f norm;
+    arr4f centroid;
 };
 
 struct Mesh
@@ -74,6 +83,8 @@ struct Scene
     std::vector<Triangle> triangles;
 
     std::vector<Sphere> spheres;
+
+    BVHNode* bvh;
 
     //Functions
     void loadFromXml(const std::string &filepath);

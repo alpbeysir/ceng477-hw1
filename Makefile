@@ -6,25 +6,19 @@ RUNNER=
 
 INCDIR=.
 SRCDIR=.
-OBJDIR=obj
-BUILDDIR=build
-BINDIR=bin
+OBJDIR=.
+BUILDDIR=.
+BINDIR=.
 SRCS = $(wildcard $(SRCDIR)/*.$(SRC_EXTENSION))
 OBJS = $(patsubst $(SRCDIR)/%.$(SRC_EXTENSION), $(OBJDIR)/%.$(OBJ_EXTENSION), $(SRCS))
 DEPENDS = $(patsubst $(SRCDIR)/%.$(SRC_EXTENSION),%.d,$(SRCS))
 HEADERS = $(wildcard $(INCDIR)/*.h)
 
-CFLAGS=-I"./$(INCDIR)" -O3 -Wno-ignored-attributes -fopenmp
-LDFLAGS=-fPIC -lm -O3 -fopenmp
+CFLAGS=-I"./$(INCDIR)" -O3 -Wno-ignored-attributes -fopenmp -flto
+LDFLAGS=$(CFLAGS) -fPIC -lm -O3 -fopenmp
 
-EXECNAME=main
+EXECNAME=raytracer
 ARGS=
-
-run: build
-	@echo RUNNING $(RUNNER) ./$(BINDIR)/$(EXECNAME) $(ARGS)
-	@echo ================
-	@$(RUNNER) ./$(BINDIR)/$(EXECNAME) $(ARGS)
-.PHONY: run
 
 build: $(OBJS)
 	@$(COMPILER) $(filter-out %.h,$^) -o $(BINDIR)/$(EXECNAME) $(LDFLAGS)
