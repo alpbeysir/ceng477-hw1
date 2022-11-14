@@ -7,10 +7,12 @@
 #include "geometry.h"
 #include "shading.h"
 
+bool debug = false;
+
 std::pair<vec4f, bool> trace(const Scene& scene, Ray ray)
 {
 	float t_min = FLT_MAX;
-	int depth = scene.max_recursion_depth;
+	int depth = scene.max_recursion_depth+1;
 	vec4f color = _mm_set1_ps(0);
 	vec4f reflectance = _mm_set1_ps(1);
 	bool hit_info = false;
@@ -23,11 +25,15 @@ std::pair<vec4f, bool> trace(const Scene& scene, Ray ray)
 		vec4f diffuse_shade = vec4f{0,0,0,0};
 		vec4f specular_shade = vec4f{0,0,0,0};
 		t_min = INFINITY;
+
 		
 		if (not do_geometry(scene, ray, t_min, obj, material, hit_point, norm)) {
-			color += scene.background_color;
+			color += scene.background_color * reflectance;
 			break;
 		}
+		// if(debug) {
+		// 	std::cout << obj.type << '\t' << (obj.type == COLLISION_OBJECT_SPHERE ? obj.data.sphere->material_id : obj.data.tri->material_id) << '\n';
+		// }
 		hit_info = true;
 
 		do_shading(scene, hit_point, norm, material, ray, diffuse_shade, specular_shade);
@@ -46,6 +52,7 @@ std::pair<vec4f, bool> trace(const Scene& scene, Ray ray)
 			break;
 		}
 	}
+	debug = false;
 	return { color , hit_info };
 }
 
@@ -67,6 +74,9 @@ void render_camera(Scene& scene, int camIndex)
 	{
 		for (int j = 0; j < current_camera.image_height; j++)
 		{
+			if(i == 264 and j == 411) {
+				debug = true;
+			}
 			Ray ray = Ray::from_to(current_camera.position, plane_pixel_position(current_camera, i, j));
 			ray.direction = normalize4f(ray.direction);
 			auto zort = trace(scene, ray);
@@ -75,6 +85,7 @@ void render_camera(Scene& scene, int camIndex)
 		}
 	}
 	
+	#pragma omp parallel for
 	for (int i = 0; i < current_camera.image_width; i++)
 	{
 		for (int j = 0; j < current_camera.image_height; j++)

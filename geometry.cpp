@@ -121,27 +121,27 @@ std::pair<float, CollisionObject> nearest_object(const Ray& ray, const Scene& sc
 		}
 	}
 
-	const auto [t, tri] = bvh_get_collision(scene, scene.bvh, ray);
+	// const auto [t, tri] = bvh_get_collision(scene, scene.bvh, ray);
 
-	if (t_min > t)
+	// if (t_min > t)
+	// {
+	// 	t_min = t;
+	// 	obj.type = COLLISION_OBJECT_TRI;
+	// 	obj.data.tri = tri;
+	// }
+
+	for (const auto& tri : scene.triangles)
 	{
-		t_min = t;
-		obj.type = COLLISION_OBJECT_TRI;
-		obj.data.tri = tri;
+		// std::cout << ray.direction << '\t' << ray.start << '\t' << sphere.position << ' ' << sphere.radius << '\n';
+		float t = triangle_get_collision(scene.vertex_data, tri.indices, ray);
+
+		if (t_min > t)
+		{
+			t_min = t;
+			obj.type = COLLISION_OBJECT_TRI;
+			obj.data.tri = &tri;
+		}
 	}
-
-	//for (const auto& tri : scene.triangles)
-	//{
-	//	// std::cout << ray.direction << '\t' << ray.start << '\t' << sphere.position << ' ' << sphere.radius << '\n';
-	//	float t = triangle_get_collision(scene.vertex_data, tri.indices, ray);
-
-	//	if (t_min > t)
-	//	{
-	//		t_min = t;
-	//		obj.type = COLLISION_OBJECT_TRI;
-	//		obj.data.tri = &tri;
-	//	}
-	//}
 
 	return std::pair<float, CollisionObject>(t_min, obj);
 }
