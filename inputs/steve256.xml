@@ -9,7 +9,7 @@
 			<Up>-0.14805854856967926 0.09835490584373474 0.9840757250785828</Up>
 			<NearPlane>-1 1 -1.0 1.0</NearPlane>
 			<NearDistance>3</NearDistance>
-			<ImageResolution>256 256</ImageResolution>
+			<ImageResolution>800 800</ImageResolution>
 			<ImageName>stevefront</ImageName>
 		</Camera>
 	</Cameras>

@@ -2,8 +2,8 @@
 #include "ray_tracer.h"
 
 constfn vec4f plane_pixel_position(const Camera self, const size_t x, const size_t y) {
-   cfloat x_ratio = ((float)x / (float)self.image_width);
-   cfloat y_ratio = ((float)y / (float)self.image_height);
+   cfloat x_ratio = ((float)(x+0.5f) / (float)self.image_width);
+   cfloat y_ratio = ((float)(y+0.5f) / (float)self.image_height);
    arr4f arr = amake(self.near_plane);
    cfloat left = arr[0];
    cfloat right = arr[1];

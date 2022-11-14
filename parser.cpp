@@ -49,6 +49,7 @@ void Scene::loadFromXml(const std::string &filepath)
         stream << "0.001" << std::endl;
     }
     stream >> shadow_ray_epsilon;
+    // shadow_ray_epsilon /= 8.0f;
 
     //Get MaxRecursionDepth
     element = root->FirstChildElement("MaxRecursionDepth");
