@@ -125,7 +125,7 @@ std::pair<float, CollisionObject> nearest_object(const Ray& ray, const Scene& sc
 	{
 		t_min = t;
 		obj.type = COLLISION_OBJECT_TRI;
-		obj.data.tri = &tri;
+		obj.data.tri = tri;
 	}
 
 	//for (const auto& tri : scene.triangles)
